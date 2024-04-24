@@ -19,7 +19,11 @@
         </div>
         <input type="text" class="form-control" name="routingkey" id="routingkey" placeholder="Enter your routing key">
       </div>
-
+      <div>
+        <h3>Event History:</h3>
+        <ul id="routingKeyHistory"></ul>
+        <button id="clearHistory">Clear History</button>
+      </div>
       <div class="form-group">
         <label for="exampleFormControlTextarea1">A Sample JSON Payload below. Feel free to modify. Routing key will be replaced with the one entered in the field so there is no need to change that in the payload.</label>
         <div id="jsoneditor" style="height: 500px;"></div>
@@ -30,6 +34,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/10.0.2/jsoneditor.min.js"></script>
 
     <script>
+      // Initialize storedRoutingKeys with values from localStorage or an empty array if not available
+      var storedRoutingKeys = JSON.parse(localStorage.getItem("routingKeys")) || [];
+
       var container = document.getElementById("jsoneditor");
       var options = {
         mode: "code",
@@ -40,6 +47,7 @@
 
       var editor = new JSONEditor(container, options);
 
+      //payload to load
       var json = {
         "payload": {
           "summary": "My Server is on Fire!",
@@ -76,10 +84,67 @@
 
       editor.set(json);
 
-      var button = document.querySelector('button');
-      button.onclick = function() {
-        eventfire()
-      }
+     // Function to update the routing key history on the page
+    function updateRoutingKeyHistory() {
+      var historyContainer = document.getElementById("routingKeyHistory");
+      historyContainer.innerHTML = ""; // Clear previous history
+
+      // Create list items for each stored routing key
+      storedRoutingKeys.forEach(function(entry) {
+        var listItem = document.createElement("li");
+        listItem.textContent = entry.key + " - " + entry.timestamp;
+        
+        // display the dedup key
+        if (entry.dedupKey) {
+          var dedupKeyItem = document.createElement("ul");
+          var subListItem = document.createElement("li");
+          subListItem.textContent = "Dedup Key: " + entry.dedupKey;
+          subListItem.style.color = "red";
+          dedupKeyItem.appendChild(subListItem);
+          listItem.appendChild(dedupKeyItem);
+
+          // display the event action from payload
+          if (entry.eventAction) {
+            var eventActionItem = document.createElement("li");
+            eventActionItem.textContent = "Event Action: ";
+            var eventActionBadge = document.createElement("span");
+            eventActionBadge.textContent = entry.eventAction;
+            eventActionBadge.className = "badge badge-pill badge-danger ml-1";
+            eventActionItem.appendChild(eventActionBadge);
+            dedupKeyItem.appendChild(eventActionItem);
+          }
+
+          // display the status from response
+          if (entry.status) {
+            var statusItem = document.createElement("li");
+            statusItem.textContent = "Status: ";
+            var statusBadge = document.createElement("span");
+            statusBadge.textContent = entry.status;
+            statusBadge.className = "badge badge-pill badge-success ml-1";
+            statusItem.appendChild(statusBadge);
+            dedupKeyItem.appendChild(statusItem);
+          }
+          
+          listItem.appendChild(dedupKeyItem);
+        }
+        historyContainer.appendChild(listItem);
+      });
+    }
+
+    // Update the routing key history initially
+    updateRoutingKeyHistory();
+
+    // Clear the routing key history
+    document.getElementById("clearHistory").addEventListener("click", function() {
+      localStorage.removeItem("routingKeys");
+      storedRoutingKeys = [];
+      updateRoutingKeyHistory();
+    });
+
+      //var button = document.querySelector('button');
+      //button.onclick = function() {
+      //  eventfire()
+      //}
 
       function eventfire() {
         const doctext = document.getElementById('mainbutton')
@@ -106,6 +171,13 @@
               // Successful response
               if (xhr.status === 202) {
                 doctext.innerHTML = "🔥🔥🔥🔥 Event Sent 🔥🔥🔥🔥";
+                try {
+                  const responseJson = JSON.parse(xhr.responseText);
+                  editor.set(responseJson);
+                  storeRoutingKey(rkey, responseJson.dedup_key, responseJson.status, json.event_action);
+                } catch (error) {
+                  console.error("Error parsing response JSON: " + error);
+                }
               } else {
                 console.error("Error: Request failed with status " + xhr.status);
                 console.error("Response Text: " + xhr.responseText);
@@ -119,24 +191,29 @@
               // Display a user-friendly error message
              alert("Failed to send the event. " + xhr.responseText);
            }
-
             try {
               const responseJson = JSON.parse(xhr.responseText);
               editor.set(responseJson);
             } catch (error) {
               console.error("Error parsing response JSON: " + error);
             }
-
-            // Reload the page after 5 seconds
-            setTimeout(function() {
-              location.reload();
-            }, 5000);
           }
         };
-
+        //log payload to console
         console.log(payload);
         xhr.send(payload);
       }
+      
+    // Event listener for the main button click
+    document.getElementById("mainbutton").addEventListener("click", eventfire);
+
+    // Function to store routing key
+    function storeRoutingKey(key, dedupKey, status, eventAction) {
+      var timestamp = new Date().toLocaleString();
+      storedRoutingKeys.push({ key: key, timestamp: timestamp, dedupKey: dedupKey, status: status, eventAction: eventAction });
+      localStorage.setItem("routingKeys", JSON.stringify(storedRoutingKeys));
+      updateRoutingKeyHistory();
+    }
     </script>
   </body>
 </html>
