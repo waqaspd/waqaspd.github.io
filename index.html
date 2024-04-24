@@ -103,27 +103,27 @@
           dedupKeyItem.appendChild(subListItem);
           listItem.appendChild(dedupKeyItem);
 
-          // display the event action from payload
-          if (entry.eventAction) {
-            var eventActionItem = document.createElement("li");
-            eventActionItem.textContent = "Event Action: ";
-            var eventActionBadge = document.createElement("span");
-            eventActionBadge.textContent = entry.eventAction;
-            eventActionBadge.className = "badge badge-pill badge-danger ml-1";
-            eventActionItem.appendChild(eventActionBadge);
-            dedupKeyItem.appendChild(eventActionItem);
-          }
+        // display the event action from payload
+        if (entry.eventAction) {
+          var eventActionItem = document.createElement("li");
+          eventActionItem.textContent = "Event Action: ";
+          var eventActionBadge = document.createElement("span");
+          eventActionBadge.textContent = entry.eventAction;
+          eventActionBadge.className = "badge badge-pill badge-danger ml-1";
+          eventActionItem.appendChild(eventActionBadge);
+          dedupKeyItem.appendChild(eventActionItem);
+        }
 
-          // display the status from response
-          if (entry.status) {
-            var statusItem = document.createElement("li");
-            statusItem.textContent = "Status: ";
-            var statusBadge = document.createElement("span");
-            statusBadge.textContent = entry.status;
-            statusBadge.className = "badge badge-pill badge-success ml-1";
-            statusItem.appendChild(statusBadge);
-            dedupKeyItem.appendChild(statusItem);
-          }
+        // display the status from response
+        if (entry.status) {
+          var statusItem = document.createElement("li");
+          statusItem.textContent = "Status: ";
+          var statusBadge = document.createElement("span");
+          statusBadge.textContent = entry.status;
+          statusBadge.className = "badge badge-pill badge-success ml-1";
+          statusItem.appendChild(statusBadge);
+          dedupKeyItem.appendChild(statusItem);
+        }
           
           listItem.appendChild(dedupKeyItem);
         }
@@ -146,63 +146,64 @@
       //  eventfire()
       //}
 
-      function eventfire() {
-        const doctext = document.getElementById('mainbutton')
-        const rkey = document.getElementsByName('routingkey')[0].value.trim();
+    function eventfire() {
+      const doctext = document.getElementById('mainbutton')
+      const rkey = document.getElementsByName('routingkey')[0].value.trim();
 
-        if (rkey === "") {
-          alert("Routing key cannot be empty. Please enter a valid routing key.");
-          return; 
-        }
-        var json = editor.get();
+      if (rkey === "") {
+        alert("Routing key cannot be empty. Please enter a valid routing key.");
+        return; 
+      }
+      
+      var json = editor.get();
 
-        json.routing_key = rkey;
+      json.routing_key = rkey;
 
-        var payload = JSON.stringify(json);
-        var xhr = new XMLHttpRequest();
-        var url = "https://events.pagerduty.com/v2/enqueue";
+      var payload = JSON.stringify(json);
+      var xhr = new XMLHttpRequest();
+      var url = "https://events.pagerduty.com/v2/enqueue";
 
-        xhr.open("POST", url, true);
-        xhr.setRequestHeader("Content-Type", "application/json");
+      xhr.open("POST", url, true);
+      xhr.setRequestHeader("Content-Type", "application/json");
 
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4) {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              // Successful response
-              if (xhr.status === 202) {
-                doctext.innerHTML = "🔥🔥🔥🔥 Event Sent 🔥🔥🔥🔥";
-                try {
-                  const responseJson = JSON.parse(xhr.responseText);
-                  editor.set(responseJson);
-                  storeRoutingKey(rkey, responseJson.dedup_key, responseJson.status, json.event_action);
-                } catch (error) {
-                  console.error("Error parsing response JSON: " + error);
-                }
-              } else {
-                console.error("Error: Request failed with status " + xhr.status);
-                console.error("Response Text: " + xhr.responseText);
-                // Display a user-friendly error message
-                alert("Failed to send the event. " + xhr.responseText);
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            // Successful response
+            if (xhr.status === 202) {
+              doctext.innerHTML = "🔥🔥🔥🔥 Event Sent 🔥🔥🔥🔥";
+              try {
+                const responseJson = JSON.parse(xhr.responseText);
+                editor.set(responseJson);
+                storeRoutingKey(rkey, responseJson.dedup_key, responseJson.status, json.event_action);
+              } catch (error) {
+                console.error("Error parsing response JSON: " + error);
               }
             } else {
-              // Handle other status codes (e.g., 404, 500)
               console.error("Error: Request failed with status " + xhr.status);
               console.error("Response Text: " + xhr.responseText);
               // Display a user-friendly error message
-             alert("Failed to send the event. " + xhr.responseText);
-           }
-            try {
-              const responseJson = JSON.parse(xhr.responseText);
-              editor.set(responseJson);
-            } catch (error) {
-              console.error("Error parsing response JSON: " + error);
+              alert("Failed to send the event. " + xhr.responseText);
             }
+          } else {
+            // Handle other status codes (e.g., 404, 500)
+            console.error("Error: Request failed with status " + xhr.status);
+            console.error("Response Text: " + xhr.responseText);
+            // Display a user-friendly error message
+           alert("Failed to send the event. " + xhr.responseText);
+         }
+          try {
+            const responseJson = JSON.parse(xhr.responseText);
+            editor.set(responseJson);
+          } catch (error) {
+            console.error("Error parsing response JSON: " + error);
           }
-        };
-        //log payload to console
-        console.log(payload);
-        xhr.send(payload);
-      }
+        }
+      };
+      //log payload to console
+      console.log(payload);
+      xhr.send(payload);
+    }
       
     // Event listener for the main button click
     document.getElementById("mainbutton").addEventListener("click", eventfire);
