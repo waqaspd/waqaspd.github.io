@@ -7,29 +7,38 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/10.0.2/jsoneditor.min.css">
   </head>
   <body>
-    <div class="jumbotron">
-      <h1 class="display-4">🔥 PagerDuty Event Alert Trigger 🔥</h1>
-      <p class="lead">Trigger a real-time Pagerduty Event using the events API V2</p>
-      <button name="button" id="mainbutton" class="btn btn-outline-danger btn.lg" type="button">Send Event ☎️</button>
-      <br />
-      <br />
-      <div class="input-group mb-3">
-        <div class="input-group-prepend">
-          <span class="input-group-text" id="inputGroup-sizing-default">Service/Ochestration Integration Key</span>
+    <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+      <a class="navbar-brand" href="#">🔥 PagerDuty Event Alert Trigger 🔥</a>
+    </nav>
+    <main role="main">
+      <div class="jumbotron">
+        <h1 class="display-3">Send an Event V2</h1>
+        <p>The Events API v2 requires a <span class="badge badge-pill badge-success">routing_key</span>. You can <a href="https://support.pagerduty.com/docs/services-and-integrations#section-events-API-v2" target="_blank">create an Events API v2 integration on any PagerDuty service</a> in order to get a routing key that will route an event to that service. You can also use an integration key from an Event Orchestration to send alert events.</p>
+        <p><a class="btn btn-primary btn-lg" href="https://developer.pagerduty.com/docs/ZG9jOjExMDI5NTgx-send-an-alert-event" role="button">Learn more »</a></p>    
+        <br />
+        <br />
+        <div class="input-group input-group-lg">
+          <div class="input-group-prepend">
+            <span class="input-group-text bg-info" id="inputGroup-sizing-default">Service/Ochestration Integration Key</span>
+          </div>
+          <input type="text" class="form-control" name="routingkey" id="routingkey" placeholder="Enter your routing key">
+          <div class="input-group-append">
+            <button name="button" id="mainbutton" class="btn btn-outline-danger btn.lg" type="button">Send Event ☎️</button>
+          </div>
         </div>
-        <input type="text" class="form-control" name="routingkey" id="routingkey" placeholder="Enter your routing key">
-      </div>
-      <div>
-        <h3>Event History:</h3>
-        <ul id="routingKeyHistory"></ul>
-        <button id="clearHistory">Clear History</button>
-      </div>
-      <div class="form-group">
-        <label for="exampleFormControlTextarea1">A Sample JSON Payload below. Feel free to modify. Routing key will be replaced with the one entered in the field so there is no need to change that in the payload.</label>
-        <div id="jsoneditor" style="height: 500px;"></div>
-      </div>
-      For more information <a href="https://developer.pagerduty.com/docs/ZG9jOjExMDI5NTgx-send-an-alert-event" target="_blank">PagerDuty Events</a> - Events API payloads are limited to 512 KB
-    </div>
+      </br />
+        <div>
+          <h3>Event History:</h3>
+          <ul id="routingKeyHistory"></ul>
+          <button id="clearHistory">Clear History</button>
+        </div>
+        <div class="form-group">
+          <label for="exampleFormControlTextarea1">A Sample JSON Payload below. Feel free to modify. Routing key will be replaced with the one entered in the field so there is no need to change that in the payload.</label>
+          <div id="jsoneditor" style="height: 500px;"></div>
+        </div>
+          For more information <a href="https://developer.pagerduty.com/docs/ZG9jOjExMDI5NTgx-send-an-alert-event" target="_blank">PagerDuty Events</a> - Events API payloads are limited to 512 KB
+        </div>
+    </main>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsoneditor/10.0.2/jsoneditor.min.js"></script>
 
@@ -103,6 +112,21 @@
           dedupKeyItem.appendChild(subListItem);
           listItem.appendChild(dedupKeyItem);
 
+          var viewRequestButton = document.createElement("button");
+          viewRequestButton.textContent = "Load Request";
+          viewRequestButton.className = "btn btn-sm btn-primary";
+          viewRequestButton.onclick = function() {
+            if (entry.request) {
+              editor.set(JSON.parse(entry.request));
+            } else {
+              alert("No stored request available.");
+            }
+          };
+          dedupKeyItem.appendChild(viewRequestButton);
+
+          dedupKeyItem.appendChild(subListItem);
+          listItem.appendChild(dedupKeyItem);
+
         // display the event action from payload
         if (entry.eventAction) {
           var eventActionItem = document.createElement("li");
@@ -154,7 +178,7 @@
         alert("Routing key cannot be empty. Please enter a valid routing key.");
         return; 
       }
-      
+
       var json = editor.get();
 
       json.routing_key = rkey;
@@ -175,7 +199,7 @@
               try {
                 const responseJson = JSON.parse(xhr.responseText);
                 editor.set(responseJson);
-                storeRoutingKey(rkey, responseJson.dedup_key, responseJson.status, json.event_action);
+                storeRoutingKey(rkey, responseJson.dedup_key, responseJson.status, json.event_action, payload);
               } catch (error) {
                 console.error("Error parsing response JSON: " + error);
               }
@@ -209,9 +233,9 @@
     document.getElementById("mainbutton").addEventListener("click", eventfire);
 
     // Function to store routing key
-    function storeRoutingKey(key, dedupKey, status, eventAction) {
+    function storeRoutingKey(key, dedupKey, status, eventAction, request) {
       var timestamp = new Date().toLocaleString();
-      storedRoutingKeys.push({ key: key, timestamp: timestamp, dedupKey: dedupKey, status: status, eventAction: eventAction });
+      storedRoutingKeys.push({ key: key, timestamp: timestamp, dedupKey: dedupKey, status: status, eventAction: eventAction, request: request });
       localStorage.setItem("routingKeys", JSON.stringify(storedRoutingKeys));
       updateRoutingKeyHistory();
     }
